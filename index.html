@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CCAF Quest</title>
-<meta name="description" content="A free, gamified study app for the Claude Certified Architect – Foundations exam: practice rounds, weak-spot drills, a timed exam simulator and a study-group leaderboard.">
-<meta property="og:title" content="CCAF Quest">
+<title>Context Club · CCAF track</title>
+<meta name="description" content="Context Club is free, gamified practice for tech exams. CCAF track: study for the Claude Certified Architect – Foundations exam with practice rounds, weak-spot drills, a timed exam simulator and a study-group leaderboard.">
+<meta property="og:title" content="Context Club · CCAF track">
 <meta property="og:description" content="Practice for the Claude Certified Architect – Foundations exam with friends: 178 original questions, a timed exam simulator and a leaderboard.">
 <meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232F5BFF'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial Black'%3EQ%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232F5BFF'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial Black'%3EC%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
@@ -326,8 +326,8 @@ function renderHome(){
  const resumable=P.session&&P.session.items&&!P.session.done;
  let h=`<section class="card hero">
   <div class="title">
-   <span class="eyebrow">Claude Certified Architect – Foundations</span>
-   <h1>CCAF <span>Quest</span></h1>
+   <span class="eyebrow">CCAF track · Claude Certified Architect – Foundations</span>
+   <h1>Context <span>Club</span></h1>
    <p>${BANK.length} original scenario questions written from the official exam guide. Answer, learn why, level up, then take the 60-question timed exam.</p>
    ${setPicker()}
    <div class="row"><span class="chip">${esc(rank())}</span><div class="grow" style="flex:1;min-width:140px"><div class="bar" role="progressbar" aria-valuenow="${into}" aria-valuemax="${LVL}" aria-label="XP to next level"><i style="width:${pct(into,LVL)}%;background:var(--gold)"></i></div></div><span class="tnum muted" style="font-weight:800;font-size:.85rem">${into}/${LVL} XP</span></div>
@@ -750,7 +750,7 @@ function renderNav(){
  const n=$("#nav");if(!n)return;
  if(!SB){n.innerHTML="";n.hidden=true;return;}
  n.hidden=false;
- n.innerHTML=`<button class="brand" data-act="home" aria-label="CCAF Quest home">CCAF <span>Quest</span></button><div class="grow"></div>
+ n.innerHTML=`<button class="brand" data-act="home" aria-label="Context Club home">Context <span>Club</span></button><div class="grow"></div>
   <button class="btn small ${view==="board"?"primary":""}" data-act="board">Leaderboard</button>
   ${ME?`<button class="who btn small ghost" data-act="board" title="Change your nickname on the leaderboard page">${esc(ME.name)}</button><button class="btn small ghost" data-act="signout">Sign out</button>`:`<button class="btn small gold" data-act="auth">Sign in</button>`}`;
 }
