@@ -1,6 +1,6 @@
-# CCAF Quest
+# Context Club
 
-**A gamified study app for the Claude Certified Architect – Foundations (CCAF) exam, built so a group of friends can prepare together.**
+**Gamified practice for tech exams, built so a group of friends can prepare together. The first track covers the Claude Certified Architect – Foundations (CCAF) exam.**
 
 ### ▶ [Try it live: ccaf-quest-rust.vercel.app](https://ccaf-quest-rust.vercel.app)
 
@@ -31,7 +31,7 @@ I was preparing for the CCAF exam, and so were some of my friends. We were passi
 
 ## Architecture
 
-CCAF Quest is a static front end (HTML and vanilla JavaScript, no build step) backed by a hosted Postgres database with email sign-in. Access rules live in the database itself through row-level security: anyone can read the leaderboard, but each player can only change their own profile, add their own results and see their own detailed progress. Emails are never shown to other players. Every push to GitHub deploys the site automatically.
+Context Club is a static front end (HTML and vanilla JavaScript, no build step) backed by a hosted Postgres database with email sign-in. Access rules live in the database itself through row-level security: anyone can read the leaderboard, but each player can only change their own profile, add their own results and see their own detailed progress. Emails are never shown to other players. Every push to GitHub deploys the site automatically.
 
 ## Project structure
 
