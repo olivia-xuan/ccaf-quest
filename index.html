@@ -192,6 +192,9 @@ footer{font-size:.82rem;color:var(--muted);text-align:center}
 .authf label{display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:.9rem}
 .authf input{font:inherit;font-weight:600;padding:10px 12px;border:2.5px solid var(--edge);border-radius:10px;background:var(--panel2);color:var(--ink)}
 .authf input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-weight:800;font-size:.9rem;text-decoration:underline;text-underline-offset:3px;align-self:flex-start}
+.linkbtn:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+.authmsg .linkbtn{display:inline;font-size:inherit}
 .authmsg{background:var(--panel2);border:2px solid var(--gold);border-radius:10px;padding:8px 12px;font-weight:700;font-size:.92rem}
 .tblwrap{overflow-x:auto;margin:0 -6px}
 table.lb{width:100%;border-collapse:collapse;font-size:.92rem}
@@ -557,8 +560,9 @@ async function askTutor(qid,text){
 document.addEventListener("submit",e=>{const f=e.target.closest("[data-tform]");if(!f)return;e.preventDefault();const inp=f.querySelector("input");const v=inp.value;inp.value="";askTutor(f.dataset.tform,v);});
 /* ---------- cloud: accounts, saved results, leaderboard (Supabase) ---------- */
 const CFG=window.CCAF_CONFIG||{};
+const LINK=(()=>{const h=new URLSearchParams(location.hash.slice(1)),q=new URLSearchParams(location.search);const g=k=>h.get(k)||q.get(k);return {type:g("type"),error:g("error_description")||g("error")};})();
 const SB=(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase&&!/YOUR-/.test(CFG.supabaseUrl))?window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey):null;
-let ME=null, cloudTimer=null, authMode="signin", authMsg="", authBusy=false, BOARD=null, boardErr="";
+let ME=null, cloudTimer=null, authMode="signin", authMsg="", authBusy=false, authEmail="", canResend=false, BOARD=null, boardErr="";
 function userKey(){return ME?KEY+":"+ME.id:KEY;}
 function summaryNums(){let seen=0,m=0;ALL.forEach(q=>{const s=stat(q.id);if(s.n)seen++;if(s.last===1)m++;});return {seen,m};}
 function cloudSave(){
@@ -596,28 +600,85 @@ async function adoptUser(user){
 }
 async function initCloud(){
  if(!SB)return;
- const {data}=await SB.auth.getSession();
- if(data&&data.session)await adoptUser(data.session.user);
+ let recovering=LINK.type==="recovery";
  SB.auth.onAuthStateChange((ev,session)=>{
   if(ev==="SIGNED_OUT"){ME=null;P=load();useSet(P.set||"all");BOARD=null;go("home");}
+  if(ev==="PASSWORD_RECOVERY")recovering=true;
  });
+ const {data}=await SB.auth.getSession();
+ if(data&&data.session)await adoptUser(data.session.user);
+ if(LINK.error){view="auth";authMode="signin";authMsg=friendlyLinkError(LINK.error);}
+ else if(recovering&&ME){view="auth";authMode="reset";authMsg="";}
+ else if(LINK.type==="signup"&&ME)setTimeout(()=>toast("Email confirmed. Welcome, "+ME.name+"!"),300);
+ if(LINK.type||LINK.error)history.replaceState(null,"",location.pathname);
 }
+function friendlyLinkError(m){
+ if(/expired|invalid/i.test(m))return "That email link has expired or was already used. Ask for a new one below.";
+ return "That email link didn't work ("+m+"). Ask for a new one below.";
+}
+function friendlyAuthError(e){
+ const m=(e&&e.message)||"";
+ if(/invalid login credentials/i.test(m))return "That email and password don't match an account. Check for typos, or use \"Forgot password?\" to set a new one.";
+ if(/email not confirmed/i.test(m)){canResend=true;return "Please confirm your email first: open the link we sent you. Can't find it? Check spam, or send it again.";}
+ if(/rate limit|too many/i.test(m))return "Too many emails were sent in a short time. Please wait a few minutes and try again.";
+ if(/already registered|already exists/i.test(m))return "There's already an account with this email. Try signing in, or use \"Forgot password?\".";
+ if(/password should|weak password/i.test(m))return "Please choose a stronger password: at least 8 characters.";
+ return m||"Something went wrong. Try again.";
+}
+const BACK=()=>location.origin+location.pathname;
 async function doAuth(form){
- const email=form.email.value.trim(),pw=form.password.value,name=form.dname?form.dname.value.trim():"";
+ const email=form.email?form.email.value.trim():"",pw=form.password?form.password.value:"",name=form.dname?form.dname.value.trim():"";
+ if(email)authEmail=email;
  if(authMode==="signup"&&(name.length<1||name.length>24)){authMsg="Pick a nickname between 1 and 24 characters.";render();return;}
- authBusy=true;authMsg="";render();
+ if(authMode==="reset"&&pw!==form.password2.value){authMsg="The two passwords don't match. Please type them again.";render();return;}
+ authBusy=true;authMsg="";canResend=false;render();
  try{
-  let res;
-  if(authMode==="signup")res=await SB.auth.signUp({email,password:pw,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}});
-  else res=await SB.auth.signInWithPassword({email,password:pw});
-  if(res.error)throw res.error;
-  if(!res.data.session){authMsg="Almost there: check your inbox for a confirmation link, then sign in.";authMode="signin";}
-  else{await adoptUser(res.data.user);authBusy=false;toast("Signed in as "+ME.name);go("home");return;}
- }catch(e){authMsg=(e&&e.message)||"Something went wrong. Try again.";}
+  if(authMode==="forgot"){
+   const {error}=await SB.auth.resetPasswordForEmail(email,{redirectTo:BACK()});
+   if(error)throw error;
+   authMsg="If an account uses "+email+", a link to set a new password is on its way. Open it on this device. Check spam if you don't see it in a few minutes.";
+  }else if(authMode==="reset"){
+   const {error}=await SB.auth.updateUser({password:pw});
+   if(error)throw error;
+   authBusy=false;authMode="signin";toast("New password saved. You're signed in.");go("home");return;
+  }else{
+   let res;
+   if(authMode==="signup")res=await SB.auth.signUp({email,password:pw,options:{data:{display_name:name},emailRedirectTo:BACK()}});
+   else res=await SB.auth.signInWithPassword({email,password:pw});
+   if(res.error)throw res.error;
+   if(!res.data.session){authMode="signin";canResend=true;authMsg="Almost there: we sent a confirmation link to "+email+". Open it to finish creating your account. Check spam if it's not there in a few minutes.";}
+   else{await adoptUser(res.data.user);authBusy=false;toast("Signed in as "+ME.name);go("home");return;}
+  }
+ }catch(e){authMsg=friendlyAuthError(e);}
  authBusy=false;render();
 }
+async function resendConfirm(){
+ const f=document.getElementById("authform");const email=(f&&f.email&&f.email.value.trim())||authEmail;
+ if(!email){authMsg="Type your email above first.";render();return;}
+ authBusy=true;render();
+ try{const {error}=await SB.auth.resend({type:"signup",email,options:{emailRedirectTo:BACK()}});if(error)throw error;
+  canResend=false;authMsg="Sent a new confirmation link to "+email+".";}
+ catch(e){authMsg=friendlyAuthError(e);}
+ authBusy=false;render();
+}
+function keepEmail(){const f=document.getElementById("authform");if(f&&f.email&&f.email.value.trim())authEmail=f.email.value.trim();}
 function renderAuth(){
  const up=authMode==="signup";
+ if(authMode==="forgot"||authMode==="reset"){
+  const fg=authMode==="forgot";
+  app().innerHTML=`<section class="card" style="display:flex;flex-direction:column;gap:16px;max-width:520px;width:100%;margin:0 auto">
+  <span class="eyebrow">${fg?"Forgot password":"Almost done"}</span>
+  <h2>${fg?"Reset your password":"Choose a new password"}</h2>
+  <p class="muted">${fg?"Type the email you signed up with. We'll send you a link to choose a new password.":"Pick a new password for "+esc((ME&&ME.email)||"your account")+"."}</p>
+  <form id="authform" class="authf">
+   ${fg?`<label>Email<input name="email" type="email" required autocomplete="email" value="${esc(authEmail)}"></label>`:
+   `<label>New password<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters"></label>
+   <label>Type it again<input name="password2" type="password" required minlength="8" autocomplete="new-password"></label>`}
+   ${authMsg?`<p class="authmsg" role="alert">${esc(authMsg)}</p>`:""}
+   <div class="row"><button class="btn primary" type="submit" ${authBusy?"disabled":""}>${authBusy?"One moment…":fg?"Send reset link":"Save new password"}</button>${fg?`<button class="btn small ghost" type="button" data-act="authin">Back to sign in</button>`:""}</div>
+  </form></section>`;
+  return;
+ }
  app().innerHTML=`<section class="card" style="display:flex;flex-direction:column;gap:16px;max-width:520px;width:100%;margin:0 auto">
   <span class="eyebrow">${up?"Create your account":"Welcome back"}</span>
   <h2>${up?"Join the study group":"Sign in"}</h2>
@@ -625,9 +686,10 @@ function renderAuth(){
   <div class="row" role="tablist"><button class="chip ${!up?"sel":""}" data-act="authin" role="tab" aria-selected="${!up}">Sign in</button><button class="chip ${up?"sel":""}" data-act="authup" role="tab" aria-selected="${up}">Create account</button></div>
   <form id="authform" class="authf">
    ${up?`<label>Nickname (shown to others)<input name="dname" maxlength="24" required autocomplete="nickname" placeholder="e.g. LoopMaster"></label>`:""}
-   <label>Email<input name="email" type="email" required autocomplete="email"></label>
+   <label>Email<input name="email" type="email" required autocomplete="email" value="${esc(authEmail)}"></label>
    <label>Password<input name="password" type="password" required minlength="8" autocomplete="${up?"new-password":"current-password"}" placeholder="${up?"At least 8 characters":""}"></label>
-   ${authMsg?`<p class="authmsg" role="alert">${esc(authMsg)}</p>`:""}
+   ${!up?`<button class="linkbtn" type="button" data-act="authforgot">Forgot password?</button>`:""}
+   ${authMsg?`<p class="authmsg" role="alert">${esc(authMsg)}${canResend?` <button class="linkbtn" type="button" data-act="authresend" ${authBusy?"disabled":""}>Send the confirmation email again</button>`:""}</p>`:""}
    <div class="row"><button class="btn primary" type="submit" ${authBusy?"disabled":""}>${authBusy?"One moment…":up?"Create account":"Sign in"}</button><button class="btn small ghost" type="button" data-act="home">Keep playing as a guest</button></div>
   </form></section>`;
 }
@@ -729,7 +791,8 @@ document.addEventListener("click",e=>{
   enext:()=>{if(S.items[S.i].pick===null)return;if(S.i+1<S.items.length){S.i++;P.session=S;save();render();window.scrollTo({top:0});}else{S.review=true;S.confirm=false;render();}},
   backtoexam:()=>{S.review=false;render();}, submit:()=>{S.confirm=true;render();}, submitno:()=>{S.confirm=false;render();}, submityes:()=>finishExam(false),
   revmissed:()=>{S.allRev=false;render();}, revall:()=>{S.allRev=true;render();},
-  auth:()=>{authMsg="";go("auth");}, authin:()=>{authMode="signin";authMsg="";render();}, authup:()=>{authMode="signup";authMsg="";render();},
+  auth:()=>{authMsg="";if(authMode==="reset")authMode="signin";go("auth");}, authin:()=>{keepEmail();authMode="signin";authMsg="";canResend=false;render();}, authup:()=>{keepEmail();authMode="signup";authMsg="";canResend=false;render();},
+  authforgot:()=>{keepEmail();authMode="forgot";authMsg="";canResend=false;render();}, authresend:resendConfirm,
   board:()=>go("board"), boardreload:()=>{BOARD=null;boardErr="";render();}, signout:()=>{clearTimeout(cloudTimer);SB.auth.signOut();}
  }[a]||(()=>{}))();
 });
