@@ -714,7 +714,7 @@ function renderBoard(){
  const group={};let gc=0,gn=0;BOARD.attempts.forEach(a=>{Object.entries(a.domains||{}).forEach(([d,v])=>{const g=group[d]||(group[d]=[0,0]);g[0]+=v[0];g[1]+=v[1];gc+=v[0];gn+=v[1];});});
  const weakest=Object.entries(group).filter(([d,v])=>v[1]>=5).sort((a,b)=>a[1][0]/a[1][1]-b[1][0]/b[1][1])[0];
  const active7=new Set(BOARD.attempts.filter(a=>Date.now()-new Date(a.created_at)<7*864e5).map(a=>a.user_id)).size;
- const rows=BOARD.profiles.filter(p=>p.xp>0||per[p.id]);
+ const rows=BOARD.profiles;
  let h=`<section class="card hero"><div class="title"><span class="eyebrow">Study group</span><h1 style="font-size:clamp(1.9rem,6vw,2.8rem)">Leader<span>board</span></h1>
    <p>${ME?`You're playing as <b>${esc(ME.name)}</b>.`:`<button class="btn small primary" data-act="auth">Sign in</button> to get on the board.`} Ranked by XP. Every finished round and exam counts.</p></div></section>
   <section class="stats">
@@ -724,7 +724,7 @@ function renderBoard(){
    <div class="stat"><b class="tnum">${gn?pct(gc,gn)+"%":"–"}</b><span>Group accuracy</span></div>
   </section>
   <section class="card" style="display:flex;flex-direction:column;gap:12px"><h3>Rankings</h3>`;
- if(!rows.length)h+=`<p class="muted">Nobody's on the board yet. Finish a round to be first!</p>`;
+ if(!rows.length)h+=`<p class="muted">Nobody has signed up yet. Make an account to be first!</p>`;
  else{h+=`<div class="tblwrap"><table class="lb"><thead><tr><th>#</th><th>Player</th><th class="r">XP</th><th class="r hm">Seen</th><th class="r">Accuracy</th><th class="r">Best exam</th><th class="r hm">Active</th></tr></thead><tbody>`;
   rows.forEach((p,i)=>{const x=per[p.id]||{c:0,n:0,best:null,last:p.updated_at};const me=ME&&p.id===ME.id;
    h+=`<tr class="${me?"me":""}"><td class="tnum">${i<3?["🥇","🥈","🥉"][i]:i+1}</td><td><b>${esc(p.display_name)}</b>${me?' <span class="chip sm" style="padding:0 6px">you</span>':""}<div class="muted sm">${esc(RANKS[Math.min(Math.floor(p.xp/LVL),RANKS.length-1)])}</div></td>
