@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CCAF Quest</title>
+<meta name="description" content="A free, gamified study app for the Claude Certified Architect – Foundations exam: practice rounds, weak-spot drills, a timed exam simulator and a study-group leaderboard.">
+<meta property="og:title" content="CCAF Quest">
+<meta property="og:description" content="Practice for the Claude Certified Architect – Foundations exam with friends: 178 original questions, a timed exam simulator and a leaderboard.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232F5BFF'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='Arial Black'%3EQ%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: arcade "sticker" cards on a dot-grid playfield, one centered column (max 860px) */
+:root{
+  --bg:#EEF2F8; --dots:#D3DAE8; --panel:#FFFFFF; --panel2:#F6F8FC;
+  --ink:#16172B; --muted:#5A607A; --edge:#16172B; --shadow:#16172B;
+  --accent:#2F5BFF; --accent-ink:#FFFFFF; --gold:#FFB81F; --gold-ink:#3A2600;
+  --good:#16A05A; --good-bg:#E3F6EB; --bad:#D93A42; --bad-bg:#FCE7E8;
+  --d1:#FF6B3D; --d2:#00A3A3; --d3:#8457F0; --d4:#E7A800; --d5:#E2468A;
+  --display:"Bungee","Arial Black",Impact,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#11121E; --dots:#24263A; --panel:#1B1D2E; --panel2:#222538;
+  --ink:#F1F0FF; --muted:#A3A7C2; --edge:#C9C7F2; --shadow:#000000;
+  --accent:#6E8BFF; --accent-ink:#0B0D1A; --gold:#FFC94D; --gold-ink:#2A1C00;
+  --good:#3DD68C; --good-bg:#12301F; --bad:#FF6B72; --bad-bg:#3A1619;
+  --d1:#FF8A61; --d2:#2CCFCF; --d3:#A585FF; --d4:#FFCB3D; --d5:#FF6FAE;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#11121E; --dots:#24263A; --panel:#1B1D2E; --panel2:#222538;
+  --ink:#F1F0FF; --muted:#A3A7C2; --edge:#C9C7F2; --shadow:#000000;
+  --accent:#6E8BFF; --accent-ink:#0B0D1A; --gold:#FFC94D; --gold-ink:#2A1C00;
+  --good:#3DD68C; --good-bg:#12301F; --bad:#FF6B72; --bad-bg:#3A1619;
+  --d1:#FF8A61; --d2:#2CCFCF; --d3:#A585FF; --d4:#FFCB3D; --d5:#FF6FAE;
+  color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background:var(--bg);background-image:radial-gradient(var(--dots) 1.2px,transparent 1.3px);background-size:22px 22px;color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;}
+.wrap{max-width:860px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(2.2rem,7vw,3.6rem);line-height:1}
+h2{font-size:1.35rem;line-height:1.15}
+h3{font-size:1.02rem;line-height:1.2}
+p{margin:0}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel2);border:1px solid color-mix(in srgb,var(--edge) 25%,transparent);padding:.05em .35em;border-radius:5px;word-break:break-word}
+.card{background:var(--panel);border:2.5px solid var(--edge);border-radius:14px;box-shadow:5px 5px 0 var(--shadow);padding:20px;min-width:0}
+.muted{color:var(--muted)}
+.eyebrow{font-size:.74rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.btn{font-family:var(--body);font-weight:800;font-size:1rem;cursor:pointer;border:2.5px solid var(--edge);border-radius:12px;padding:11px 18px;background:var(--panel);color:var(--ink);box-shadow:3px 3px 0 var(--shadow);transition:transform .08s,box-shadow .08s;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--shadow)}
+.btn:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--shadow)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.opt:focus-visible,.chip:focus-visible,.navdot:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.gold{background:var(--gold);color:var(--gold-ink)}
+.btn.small{padding:7px 12px;font-size:.88rem;border-width:2px;box-shadow:2px 2px 0 var(--shadow)}
+.btn.ghost{box-shadow:none;border-color:transparent;background:transparent;text-decoration:underline;text-underline-offset:3px}
+.btn.ghost:hover{transform:none;box-shadow:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:.8rem;border:2px solid var(--edge);border-radius:999px;padding:3px 10px;background:var(--panel2);color:var(--ink);cursor:default}
+button.chip{cursor:pointer;font-family:var(--body)}
+.chip.sel{background:var(--ink);color:var(--panel)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;border:1.5px solid var(--edge);flex:none}
+.bar{height:12px;border:2px solid var(--edge);border-radius:999px;background:var(--panel2);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-right:2px solid var(--edge)}
+.bar>i[style*="width:0%"]{border-right:none}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.hero .title{display:flex;flex-direction:column;gap:10px;min-width:0}
+.hero h1 span{color:var(--accent)}
+.badge{width:118px;height:118px;border-radius:50%;border:3px solid var(--edge);box-shadow:4px 4px 0 var(--shadow);background:var(--gold);color:var(--gold-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px}
+.badge b{font-family:var(--display);font-size:2rem;line-height:1}
+.badge small{font-weight:800;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:var(--panel2);border:2px solid var(--edge);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-family:var(--display);font-size:1.4rem;line-height:1.1}
+.stat span{font-size:.78rem;font-weight:700;color:var(--muted)}
+@media (max-width:560px){.hero{grid-template-columns:1fr}.badge{width:96px;height:96px}.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* worlds */
+.world{display:flex;flex-direction:column;gap:10px;border-top:8px solid var(--c)}
+.world .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.world .pct{font-family:var(--display);font-size:1.1rem;color:var(--c);white-space:nowrap}
+.world .bar>i{background:var(--c)}
+
+/* mode cards */
+.mode{display:flex;flex-direction:column;gap:12px}
+.mode .tag{align-self:flex-start}
+.mode p{color:var(--muted)}
+.mode .btn{margin-top:auto;align-self:flex-start}
+
+/* quiz */
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border:2.5px solid var(--edge);border-radius:14px;box-shadow:4px 4px 0 var(--shadow);padding:10px 14px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.hud .grow{flex:1;min-width:120px}
+.hud .label{font-family:var(--display);font-size:.95rem}
+.timer{font-family:var(--display);font-size:1.15rem;padding:2px 10px;border:2px solid var(--edge);border-radius:10px;background:var(--panel2)}
+.timer.warn{background:var(--bad);color:#fff}
+.scen{border-left:6px solid var(--c,var(--accent));background:var(--panel2);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.scen summary{cursor:pointer;font-weight:800}
+.qtext{font-size:1.14rem;font-weight:700;line-height:1.5}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;text-align:left;width:100%;font:inherit;color:var(--ink);background:var(--panel);border:2.5px solid var(--edge);border-radius:12px;padding:12px 14px;cursor:pointer;box-shadow:3px 3px 0 var(--shadow);transition:transform .08s,box-shadow .08s,background .15s}
+.opt:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--shadow);background:var(--panel2)}
+.opt:disabled{cursor:default}
+.opt .k{width:34px;height:34px;border-radius:9px;border:2px solid var(--edge);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.95rem;background:var(--panel2)}
+.opt .t{min-width:0;padding-top:4px}
+.opt.picked{background:var(--panel2);outline:3px solid var(--accent);outline-offset:-1px}
+.opt.picked .k{background:var(--accent);color:var(--accent-ink)}
+.opt.right{background:var(--good-bg);border-color:var(--good)}
+.opt.right .k{background:var(--good);color:#fff;border-color:var(--good)}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.opt.wrong .k{background:var(--bad);color:#fff;border-color:var(--bad)}
+.opt.dim{opacity:.55}
+.fb{border-radius:12px;border:2.5px solid var(--edge);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.fb.ok{background:var(--good-bg);border-color:var(--good)}
+.fb.no{background:var(--bad-bg);border-color:var(--bad)}
+.fb .head{font-family:var(--display);font-size:1.1rem}
+.fb.ok .head{color:var(--good)} .fb.no .head{color:var(--bad)}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.pop{animation:pop .4s}
+@keyframes pop{0%{transform:scale(.96)}60%{transform:scale(1.02)}100%{transform:none}}
+.kbd{font-family:var(--mono);font-size:.75rem;border:1.5px solid var(--muted);border-radius:5px;padding:0 5px;color:var(--muted)}
+.qfoot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+
+/* summary */
+.score{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
+.ring{width:140px;height:140px;position:relative;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .v b{font-family:var(--display);font-size:2rem;line-height:1}
+.ring .v span{font-size:.75rem;font-weight:800;color:var(--muted)}
+@media (max-width:520px){.score{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.dline{display:grid;grid-template-columns:minmax(0,1fr) 110px 52px;gap:10px;align-items:center;font-weight:700;font-size:.93rem}
+.dline .bar>i{background:var(--c)}
+.weak{display:flex;flex-direction:column;gap:8px}
+.weak li{list-style:none;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--panel2);border:2px solid var(--edge);border-radius:10px;padding:8px 12px;font-weight:700;font-size:.92rem}
+.weak ul{padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+details.rev{border:2px solid var(--edge);border-radius:10px;background:var(--panel2);padding:10px 14px}
+details.rev summary{cursor:pointer;font-weight:700}
+details.rev .body{display:flex;flex-direction:column;gap:8px;margin-top:10px;font-size:.95rem}
+.ans{border-radius:8px;padding:6px 10px;border:2px solid}
+.ans.ok{border-color:var(--good);background:var(--good-bg)}
+.ans.no{border-color:var(--bad);background:var(--bad-bg)}
+.pass{font-family:var(--display);font-size:1.6rem;padding:4px 14px;border-radius:10px;border:2.5px solid var(--edge);display:inline-block}
+.pass.y{background:var(--good);color:#fff}.pass.n{background:var(--bad);color:#fff}
+.navgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px}
+.navdot{height:34px;border:2px solid var(--edge);border-radius:8px;background:var(--panel2);font:800 .8rem var(--body);color:var(--ink);cursor:pointer;position:relative}
+.navdot.done{background:var(--accent);color:var(--accent-ink)}
+.navdot.cur{outline:3px solid var(--gold);outline-offset:1px}
+.navdot.flag::after{content:"";position:absolute;top:-5px;right:-5px;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--edge)}
+.navdot:disabled{opacity:.35;cursor:not-allowed}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.facts div{background:var(--panel2);border:2px solid var(--edge);border-radius:10px;padding:10px 12px}
+.facts b{display:block;font-family:var(--display);font-size:1.2rem}
+.facts span{font-size:.8rem;font-weight:700;color:var(--muted)}
+.confirm{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--bad-bg);border:2px solid var(--bad);border-radius:10px;padding:10px 12px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);font-weight:800;padding:10px 16px;border-radius:12px;z-index:20;box-shadow:3px 3px 0 var(--shadow)}
+.tutor{border:2.5px dashed var(--accent);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;background:var(--panel)}
+.tutor .th{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tutor .th h3{font-size:.98rem}
+.tutor .av{width:30px;height:30px;border-radius:9px;border:2px solid var(--edge);background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:.85rem;flex:none}
+.msgs{display:flex;flex-direction:column;gap:8px}
+.msg{border-radius:10px;padding:9px 12px;max-width:100%;min-width:0;overflow-wrap:anywhere;font-size:.95rem}
+.msg.u{align-self:flex-end;background:var(--accent);color:var(--accent-ink);font-weight:700;max-width:85%}
+.msg.a{align-self:flex-start;background:var(--panel2);border:2px solid var(--edge)}
+.msg.a ul{margin:4px 0;padding-left:20px}
+.msg.a p+p{margin-top:6px}
+.msg.err{border-color:var(--bad)}
+.tform{display:flex;gap:8px}
+.tform input{flex:1;min-width:0;font:inherit;font-size:.95rem;padding:9px 12px;border:2.5px solid var(--edge);border-radius:10px;background:var(--panel2);color:var(--ink)}
+.tform input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.sugs{display:flex;gap:6px;flex-wrap:wrap}
+.tlink{font-weight:800;color:var(--accent)}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:30}
+footer{font-size:.82rem;color:var(--muted);text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.topnav{max-width:860px;margin:0 auto;padding:14px max(16px,env(safe-area-inset-left,0px)) 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.topnav .grow{flex:1}
+.brand{font-family:var(--display);font-size:1.1rem;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
+.brand span{color:var(--accent)}
+.who{font-weight:800;font-size:.9rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.authf{display:flex;flex-direction:column;gap:12px}
+.authf label{display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:.9rem}
+.authf input{font:inherit;font-weight:600;padding:10px 12px;border:2.5px solid var(--edge);border-radius:10px;background:var(--panel2);color:var(--ink)}
+.authf input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+.authmsg{background:var(--panel2);border:2px solid var(--gold);border-radius:10px;padding:8px 12px;font-weight:700;font-size:.92rem}
+.tblwrap{overflow-x:auto;margin:0 -6px}
+table.lb{width:100%;border-collapse:collapse;font-size:.92rem}
+.lb th{text-align:left;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px;border-bottom:2px solid var(--edge)}
+.lb td{padding:8px 6px;border-bottom:1px solid color-mix(in srgb,var(--edge) 20%,transparent);vertical-align:top}
+.lb .r{text-align:right;white-space:nowrap}
+.lb tr.me td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.sm{font-size:.78rem}
+.okc{color:var(--good);font-weight:800}
+ul.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+ul.feed li{display:flex;justify-content:space-between;gap:10px;font-size:.9rem;background:var(--panel2);border:2px solid var(--edge);border-radius:10px;padding:8px 12px}
+ul.feed li .sm{white-space:nowrap}
+footer a{color:inherit}
+@media (max-width:520px){.lb .hm{display:none}.who{display:none}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.50.0/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+<nav class="topnav" id="nav" hidden></nav>
+<main class="wrap" id="app" aria-live="polite">
+  <section class="card"><h2>Loading your question bank…</h2><p class="muted">Questions on the way.</p></section>
+</main>
+
+<script>
+(function(){
+"use strict";
+/* ---------- reference data from the CCAF exam guide ---------- */
+const DOMAINS={
+ 1:{name:"Agentic Architecture & Orchestration",short:"Agentic Architecture",w:27,c:"--d1"},
+ 2:{name:"Tool Design & MCP Integration",short:"Tools & MCP",w:18,c:"--d2"},
+ 3:{name:"Claude Code Configuration & Workflows",short:"Claude Code Config",w:20,c:"--d3"},
+ 4:{name:"Prompt Engineering & Structured Output",short:"Prompts & Structured Output",w:20,c:"--d4"},
+ 5:{name:"Context Management & Reliability",short:"Context & Reliability",w:15,c:"--d5"}
+};
+const TASKS={
+ "1.1":"Agentic loops & stop_reason","1.2":"Coordinator–subagent orchestration","1.3":"Subagent invocation & context passing","1.4":"Workflow enforcement & handoffs","1.5":"Agent SDK hooks","1.6":"Task decomposition strategies","1.7":"Sessions: resume & fork",
+ "2.1":"Tool descriptions & boundaries","2.2":"Structured MCP error responses","2.3":"Tool distribution & tool_choice","2.4":"MCP servers in Claude Code","2.5":"Built-in tools (Read, Grep, Glob…)",
+ "3.1":"CLAUDE.md hierarchy","3.2":"Slash commands & skills","3.3":"Path-specific rules","3.4":"Plan mode vs direct execution","3.5":"Iterative refinement","3.6":"Claude Code in CI/CD",
+ "4.1":"Explicit criteria & false positives","4.2":"Few-shot prompting","4.3":"Structured output via tool_use","4.4":"Validation & retry loops","4.5":"Batch processing","4.6":"Multi-instance & multi-pass review",
+ "5.1":"Preserving context in long chats","5.2":"Escalation & ambiguity","5.3":"Error propagation","5.4":"Large codebase exploration","5.5":"Human review & confidence","5.6":"Provenance & conflicting sources"
+};
+const SCEN={
+ 1:{name:"Customer Support Resolution Agent",c:"--d1",text:"An Agent SDK support agent handles returns, billing disputes, and account issues through MCP tools (get_customer, lookup_order, process_refund, escalate_to_human). Target: 80%+ first-contact resolution while knowing when to escalate."},
+ 2:{name:"Code Generation with Claude Code",c:"--d3",text:"Your team uses Claude Code for code generation, refactoring, debugging, and docs, with custom slash commands, CLAUDE.md configuration, and a choice between plan mode and direct execution."},
+ 3:{name:"Multi-Agent Research System",c:"--d2",text:"A coordinator agent delegates to subagents that search the web, analyze documents, synthesize findings, and generate cited reports."},
+ 4:{name:"Developer Productivity with Claude",c:"--d5",text:"An Agent SDK tool helps engineers explore unfamiliar codebases, understand legacy systems, generate boilerplate, and automate chores using Read, Write, Bash, Grep, Glob, and MCP servers."},
+ 5:{name:"Claude Code for Continuous Integration",c:"--d4",text:"Claude Code runs in your CI/CD pipeline for automated code reviews, test generation, and PR feedback. Prompts must be actionable and keep false positives low."},
+ 6:{name:"Structured Data Extraction",c:"--d3",text:"Claude extracts information from unstructured documents, validates output against JSON schemas, handles edge cases, and feeds downstream systems."}
+};
+const RANKS=["Token Rookie","Prompt Apprentice","Tool Wrangler","Loop Engineer","Subagent Strategist","Context Keeper","Orchestration Ace","Architect in Spirit"];
+const LVL=200, EXAM_N=60, EXAM_MIN=120, PER_SCEN=15;
+const KEY="ccaf-quest-v1";
+
+/* ---------- storage (per viewer, best effort) ---------- */
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&s.qs)return s;}catch(e){}return {qs:{},xp:0,best:0,exams:[],session:null};}
+function save(){P.t=Date.now();try{localStorage.setItem(userKey(),JSON.stringify(P));}catch(e){}cloudSave();}
+let P=load(), BANK=[], ALL=[], BY={}, view="home", S=null, timerInt=null, homeConfirm=false, roundSize=20;
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const app=()=>$("#app");
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function md(s){return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>");}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function cv(name){return `var(${name})`;}
+function pct(c,n){return n?Math.round(100*c/n):0;}
+function level(){return Math.floor(P.xp/LVL);}
+function rank(){return RANKS[Math.min(level(),RANKS.length-1)];}
+function stat(id){return P.qs[id]||{n:0,c:0,last:null};}
+function fmtTime(ms){ms=Math.max(0,ms);const t=Math.floor(ms/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(s).padStart(2,"0");}
+function toast(msg){const t=document.createElement("div");t.className="toast";t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+
+function record(id,ok){const s=stat(id);s.n++;if(ok)s.c++;s.last=ok?1:0;P.qs[id]=s;}
+function domainStats(){const r={};for(const d in DOMAINS)r[d]={n:0,c:0,seen:0,mastered:0,total:0};
+ BANK.forEach(q=>{const s=stat(q.id),x=r[q.d];x.total++;x.n+=s.n;x.c+=s.c;if(s.n)x.seen++;if(s.last===1)x.mastered++;});return r;}
+function taskStats(){const r={};BANK.forEach(q=>{const s=stat(q.id);const x=r[q.t]||(r[q.t]={t:q.t,d:q.d,n:0,c:0,total:0,missedNow:0});x.total++;x.n+=s.n;x.c+=s.c;if(s.last===0)x.missedNow++;});return r;}
+function weakTasks(limit){return Object.values(taskStats()).filter(x=>x.n>0).map(x=>({...x,score:(x.c+1)/(x.n+2)})).filter(x=>x.score<0.8||x.missedNow>0).sort((a,b)=>a.score-b.score||b.missedNow-a.missedNow).slice(0,limit);}
+function totals(){let n=0,c=0,seen=0,m=0;BANK.forEach(q=>{const s=stat(q.id);n+=s.n;c+=s.c;if(s.n)seen++;if(s.last===1)m++;});return {n,c,seen,m};}
+
+/* priority: missed last time > unseen > least-practiced */
+function prio(q){const s=stat(q.id);return (s.last===0?0:s.n===0?1:2)*1000+s.n+Math.random();}
+function pickFrom(pool,k,exclude){const ex=exclude||new Set();return pool.filter(q=>!ex.has(q.id)).sort((a,b)=>prio(a)-prio(b)).slice(0,k);}
+
+/* ---------- building rounds ---------- */
+function buildPractice(n,dom){
+ if(dom) return pickFrom(BY.d[dom],n);
+ // split by guide weights (largest remainder)
+ const raw=Object.keys(DOMAINS).map(d=>({d,x:n*DOMAINS[d].w/100}));
+ raw.forEach(r=>r.k=Math.floor(r.x));let left=n-raw.reduce((a,r)=>a+r.k,0);
+ raw.sort((a,b)=>(b.x-b.k)-(a.x-a.k)).forEach(r=>{if(left>0){r.k++;left--;}});
+ let out=[];raw.forEach(r=>out=out.concat(pickFrom(BY.d[r.d],r.k)));return shuffle(out);
+}
+function buildDrill(n){
+ const wt=weakTasks(4);const used=new Set();let out=[];
+ if(wt.length){const per=Math.ceil(n/wt.length);wt.forEach(w=>{const got=pickFrom(BANK.filter(q=>q.t===w.t),per,used);got.forEach(q=>used.add(q.id));out=out.concat(got);});}
+ // also pull any question missed last time
+ if(out.length<n){const missed=BANK.filter(q=>stat(q.id).last===0&&!used.has(q.id));missed.forEach(q=>{if(out.length<n){out.push(q);used.add(q.id);}});}
+ if(out.length<n){const ds=domainStats();const order=Object.keys(DOMAINS).sort((a,b)=>(ds[a].c+1)/(ds[a].n+2)-(ds[b].c+1)/(ds[b].n+2));
+  for(const d of order){if(out.length>=n)break;const got=pickFrom(BY.d[d],n-out.length,used);got.forEach(q=>used.add(q.id));out=out.concat(got);}}
+ return {qs:shuffle(out.slice(0,n)),tasks:wt.map(w=>w.t)};
+}
+function buildExam(){
+ const scen=shuffle(Object.keys(SCEN)).slice(0,4).map(Number).sort((a,b)=>a-b);
+ const seenInExam=new Set();(P.exams||[]).forEach(e=>(e.ids||[]).forEach(id=>seenInExam.add(id)));
+ let qs=[];scen.forEach(s=>{const pool=shuffle(BY.s[s]).sort((a,b)=>(seenInExam.has(a.id)?1:0)-(seenInExam.has(b.id)?1:0));
+  qs=qs.concat(pool.slice(0,PER_SCEN).sort((a,b)=>a.d-b.d||Math.random()-.5));});
+ return {qs,scen};
+}
+function mkItems(qs){return qs.map(q=>({id:q.id,order:shuffle([0,1,2,3]),pick:null,flag:false}));}
+
+/* ---------- start modes ---------- */
+function startPractice(n,dom){const qs=buildPractice(n,dom);S={mode:"practice",label:dom?DOMAINS[dom].short:"Practice round",items:mkItems(qs),i:0,streak:0,xp0:P.xp,dom:dom||null};P.session=S;save();go("quiz");}
+function startDrill(){const r=buildDrill(15);if(!r.qs.length){toast("Answer a few questions first so I can find your weak spots.");return;}S={mode:"drill",label:"Weak-spot drill",items:mkItems(r.qs),i:0,streak:0,xp0:P.xp,tasks:r.tasks};P.session=S;save();go("quiz");}
+function startExam(){const r=buildExam();S={mode:"exam",label:"Final exam",items:mkItems(r.qs),i:0,scen:r.scen,start:Date.now(),end:Date.now()+EXAM_MIN*60000,xp0:P.xp,review:false};P.session=S;save();go("exam");}
+
+const SETS={all:"All questions",1:"Set 1",2:"Set 2"};
+function useSet(k){if(!ALL.some(q=>String(q.set)===String(k)))k="all";P.set=k;BANK=k==="all"?ALL:ALL.filter(q=>String(q.set)===String(k));
+ BY={id:{},d:{},s:{}};ALL.forEach(q=>{BY.id[q.id]=q;});BANK.forEach(q=>{(BY.d[q.d]=BY.d[q.d]||[]).push(q);(BY.s[q.s]=BY.s[q.s]||[]).push(q);});}
+function setPicker(){const n=k=>k==="all"?ALL.length:ALL.filter(q=>String(q.set)===k).length;if(n("2")===0)return "";
+ return `<div class="row" role="group" aria-label="Question set"><span class="eyebrow">Question set</span>${["all","1","2"].map(k=>`<button class="chip ${String(P.set)===k?"sel":""}" data-set="${k}" aria-pressed="${String(P.set)===k}">${SETS[k]} · ${n(k)}</button>`).join("")}</div>`;}
+function go(v){view=v;homeConfirm=false;render();window.scrollTo({top:0,behavior:"instant"in window?"instant":"auto"});}
+
+/* ---------- render: home ---------- */
+function renderHome(){
+ const t=totals(),ds=domainStats(),wt=weakTasks(3),lv=level(),into=P.xp%LVL;
+ const resumable=P.session&&P.session.items&&!P.session.done;
+ let h=`<section class="card hero">
+  <div class="title">
+   <span class="eyebrow">Claude Certified Architect – Foundations</span>
+   <h1>CCAF <span>Quest</span></h1>
+   <p>${BANK.length} original scenario questions written from the official exam guide. Answer, learn why, level up, then take the 60-question timed exam.</p>
+   ${setPicker()}
+   <div class="row"><span class="chip">${esc(rank())}</span><div class="grow" style="flex:1;min-width:140px"><div class="bar" role="progressbar" aria-valuenow="${into}" aria-valuemax="${LVL}" aria-label="XP to next level"><i style="width:${pct(into,LVL)}%;background:var(--gold)"></i></div></div><span class="tnum muted" style="font-weight:800;font-size:.85rem">${into}/${LVL} XP</span></div>
+  </div>
+  <div class="badge" aria-label="Level ${lv+1}"><small>Level</small><b class="tnum">${lv+1}</b><small>${P.xp} XP</small></div>
+ </section>
+ <section class="stats">
+  <div class="stat"><b class="tnum">${t.seen}<small class="muted" style="font-size:.9rem">/${BANK.length}</small></b><span>Questions seen</span></div>
+  <div class="stat"><b class="tnum">${t.n?pct(t.c,t.n)+"%":"–"}</b><span>All-time accuracy</span></div>
+  <div class="stat"><b class="tnum">${t.m}</b><span>Mastered (right last time)</span></div>
+  <div class="stat"><b class="tnum">${P.best}</b><span>Best streak</span></div>
+ </section>`;
+ if(resumable){const s=P.session;const answered=s.items.filter(x=>x.pick!==null).length;
+  h+=`<section class="card row" style="justify-content:space-between"><div><h3>Pick up where you left off</h3><p class="muted">${esc(s.label)} · ${answered} of ${s.items.length} answered${s.mode==="exam"?" · timer keeps running":""}</p></div>
+  <div class="row"><button class="btn primary" data-act="resume">Resume</button><button class="btn small ghost" data-act="discard">Discard</button></div></section>`;}
+ h+=`<section class="grid2">
+  <div class="card mode"><span class="chip tag">Step 1 · Learn</span><h2>Practice round</h2><p>Questions weighted like the real exam. Instant feedback and an explanation after every answer.</p>
+   <div class="row" role="group" aria-label="Round size">${[10,20,30].map(n=>`<button class="chip ${roundSize===n?"sel":""}" data-size="${n}" aria-pressed="${roundSize===n}">${n} Qs</button>`).join("")}</div>
+   <button class="btn primary" data-act="practice">Start round</button></div>
+  <div class="card mode"><span class="chip tag">Step 2 · Fix gaps</span><h2>Weak-spot drill</h2>
+   <p>${wt.length?"15 questions aimed at your weakest task statements: "+wt.map(w=>`<b>${esc(w.t)} ${esc(TASKS[w.t])}</b>`).join(", ")+".":"Finish a round first. Your misses tell this mode where to aim."}</p>
+   <button class="btn gold" data-act="drill" ${t.n?"":"disabled"}>Drill weak spots</button></div>
+ </section>
+ <section class="card mode" style="border-top:8px solid var(--accent)"><span class="chip tag">Step 3 · Prove it</span><h2>Final exam simulator</h2>
+  <p>Mirrors the real format: 4 scenarios drawn at random from 6, 60 questions, 120 minutes, one correct answer out of four. No feedback until you submit.</p>
+  <div class="facts"><div><b class="tnum">60</b><span>questions</span></div><div><b class="tnum">120 min</b><span>time limit</span></div><div><b>4 of 6</b><span>scenarios</span></div><div><b class="tnum">720</b><span>scaled pass mark (100–1,000)</span></div></div>
+  ${P.exams&&P.exams.length?`<p>Last attempt: <b class="tnum">${P.exams[P.exams.length-1].scaled}</b> (${P.exams[P.exams.length-1].pass?"pass":"not yet"}), ${P.exams.length} attempt${P.exams.length>1?"s":""} so far.</p>`:""}
+  <button class="btn primary" data-act="examintro">Set up exam</button>
+ </section>
+ <section class="row" style="justify-content:space-between"><h2>Domain worlds</h2><span class="muted" style="font-size:.85rem;font-weight:700">Exam weighting from the guide</span></section>
+ <section class="grid2">`;
+ Object.keys(DOMAINS).forEach(d=>{const D=DOMAINS[d],x=ds[d];
+  h+=`<div class="card world" style="--c:${cv(D.c)}"><div class="top"><div><span class="eyebrow">Domain ${d}</span><h3>${esc(D.name)}</h3></div><span class="pct tnum">${D.w}%</span></div>
+   <div class="bar" aria-label="Mastered ${x.mastered} of ${x.total}"><i style="width:${pct(x.mastered,x.total)}%"></i></div>
+   <div class="row" style="justify-content:space-between"><span class="muted tnum" style="font-size:.85rem;font-weight:700">${x.mastered}/${x.total} mastered · ${x.n?pct(x.c,x.n)+"% accuracy":"not started"}</span>
+   <button class="btn small" data-act="domain" data-d="${d}">Play 10</button></div></div>`;});
+ h+=`</section>
+ <section class="card" style="display:flex;flex-direction:column;gap:10px">
+  <h3>How scoring works here</h3>
+  <p class="muted">Correct answers earn 10 XP, plus up to 10 bonus XP for streaks. Questions you miss come back first in later rounds until you get them right. ${SB?(ME?"Your progress is saved to your account and shows on the leaderboard.":"Playing as a guest saves progress in this browser only. Sign in to save it to your account and join the leaderboard."):"Progress is saved in this browser only."}</p>
+  ${homeConfirm?`<div class="confirm"><b>Erase all progress, XP and exam history?</b><button class="btn small" data-act="resetyes">Yes, erase</button><button class="btn small ghost" data-act="resetno">Keep it</button></div>`:`<div><button class="btn small ghost" data-act="reset">Reset my progress</button></div>`}
+ </section>
+ <footer>Questions are original practice items written from the public CCAF exam guide (v0.2, June 2026). They are not real exam questions. An unofficial, independent study aid, not affiliated with or endorsed by Anthropic.${CFG.author?` Built by ${CFG.authorUrl?`<a href="${esc(CFG.authorUrl)}" target="_blank" rel="noopener">${esc(CFG.author)}</a>`:esc(CFG.author)}.`:""}</footer>`;
+ app().innerHTML=h;
+}
+
+/* ---------- render: practice / drill question ---------- */
+function curQ(){return BY.id[S.items[S.i].id];}
+function renderQuiz(){
+ const it=S.items[S.i],q=curQ(),answered=it.pick!==null,D=DOMAINS[q.d],sc=SCEN[q.s];
+ const ok=answered&&it.order[it.pick]===0;
+ let h=`<div class="hud"><button class="btn small" data-act="home" aria-label="Back to home">Home</button>
+  <div class="grow"><div class="label">${esc(S.label)} · <span class="tnum">${S.i+1}/${S.items.length}</span></div>
+  <div class="bar" style="height:9px;margin-top:4px"><i style="width:${pct(S.i+(answered?1:0),S.items.length)}%"></i></div></div>
+  <span class="chip tnum" title="Current streak">Streak ${S.streak}</span><span class="chip tnum" style="background:var(--gold);color:var(--gold-ink)">${P.xp} XP</span></div>
+ <section class="card ${answered?(ok?"pop":"shake"):""}" id="qcard" style="display:flex;flex-direction:column;gap:16px">
+  <div class="row"><span class="chip"><span class="dot" style="background:${cv(D.c)}"></span>D${q.d} · ${esc(D.short)}</span><span class="chip">Task ${q.t} · ${esc(TASKS[q.t])}</span></div>
+  <details class="scen" open style="--c:${cv(sc.c)}"><summary>Scenario: ${esc(sc.name)}</summary><p class="muted">${esc(sc.text)}</p></details>
+  <p class="qtext">${md(q.q)}</p>
+  <div class="opts" role="group" aria-label="Answer options">`;
+ it.order.forEach((oi,pos)=>{let cls="";if(answered){if(oi===0)cls="right";else if(pos===it.pick)cls="wrong";else cls="dim";}
+  h+=`<button class="opt ${cls}" data-pos="${pos}" ${answered?"disabled":""}><span class="k">${"ABCD"[pos]}</span><span class="t">${md(q.o[oi])}</span></button>`;});
+ h+=`</div>`;
+ if(answered){const gain=it.gain||0;
+  h+=`<div class="fb ${ok?"ok":"no"}"><div class="head">${ok?(S.streak>=3?"On fire! ":"Nailed it! ")+`<span class="tnum">+${gain} XP</span>`:"Not quite. The answer is "+"ABCD"[it.order.indexOf(0)]+"."}</div><p>${md(q.e)}</p></div>${tutorBox(q,it)}
+  <div class="qfoot"><span class="muted" style="font-size:.85rem"><span class="kbd">Enter</span> next</span><button class="btn primary" data-act="next" id="nextbtn">${S.i+1<S.items.length?"Next question":"See my results"}</button></div>`;}
+ else h+=`<div class="qfoot"><span class="muted" style="font-size:.85rem">Pick with <span class="kbd">A</span>–<span class="kbd">D</span> or <span class="kbd">1</span>–<span class="kbd">4</span></span></div>`;
+ h+=`</section>`;
+ app().innerHTML=h;
+ if(answered){const b=$("#nextbtn");b&&b.focus({preventScroll:true});}
+}
+function answer(pos){
+ const it=S.items[S.i];if(it.pick!==null)return;it.pick=pos;const ok=it.order[pos]===0;const q=curQ();
+ record(q.id,ok);
+ if(ok){S.streak++;it.gain=10+Math.min(10,2*(S.streak-1));P.xp+=it.gain;P.best=Math.max(P.best,S.streak);}else{S.streak=0;it.gain=0;}
+ P.session=S;save();render();
+ if(ok){const el=document.querySelector(".opt.right");if(el){const r=el.getBoundingClientRect();burst(r.left+30,r.top+r.height/2);}}
+}
+function next(){if(S.i+1<S.items.length){S.i++;P.session=S;save();render();window.scrollTo({top:0});}else{S.done=true;P.session=null;save();logAttempt(S.mode==="practice"&&S.dom?"domain":S.mode,S.label,S.items);go("summary");}}
+
+/* ---------- render: summary ---------- */
+function ringSVG(p,color){const r=58,c=2*Math.PI*r;return `<svg viewBox="0 0 140 140" aria-hidden="true"><circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--panel2)" stroke-width="16"/><circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--edge)" stroke-width="20" stroke-dasharray="${c*p/100} ${c}" /><circle cx="70" cy="70" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-dasharray="${c*p/100} ${c}"/></svg>`;}
+function breakdown(items,key,names,colorOf){const m={};items.forEach(it=>{const q=BY.id[it.id];const k=q[key];const x=m[k]||(m[k]={n:0,c:0});x.n++;if(it.pick!==null&&it.order[it.pick]===0)x.c++;});
+ return Object.keys(m).sort().map(k=>`<div class="dline" style="--c:${colorOf(k)}"><span>${esc(names(k))}</span><div class="bar"><i style="width:${pct(m[k].c,m[k].n)}%"></i></div><span class="tnum" style="text-align:right">${m[k].c}/${m[k].n}</span></div>`).join("");}
+function reviewList(items,onlyMissed){
+ return items.map((it,i)=>({it,i})).filter(({it})=>!onlyMissed||it.order[it.pick]!==0).map(({it,i})=>{const q=BY.id[it.id];const ok=it.pick!==null&&it.order[it.pick]===0;
+  return `<details class="rev" ${ok?"":"open"}><summary>${ok?"✓":"✗"} Q${i+1} · Task ${q.t} · ${esc(q.q.slice(0,90))}${q.q.length>90?"…":""}</summary><div class="body"><p><b>${md(q.q)}</b></p>
+  ${!ok&&it.pick!==null?`<div class="ans no"><b>Your answer:</b> ${md(q.o[it.order[it.pick]])}</div>`:""}<div class="ans ok"><b>Correct:</b> ${md(q.o[0])}</div><p class="muted">${md(q.e)}</p>${tutorBox(q,it)}</div></details>`;}).join("");}
+function renderSummary(){
+ const items=S.items,c=items.filter(it=>it.order[it.pick]===0).length,n=items.length,p=pct(c,n),gained=P.xp-S.xp0;
+ const missTasks={};items.forEach(it=>{if(it.order[it.pick]!==0){const t=BY.id[it.id].t;missTasks[t]=(missTasks[t]||0)+1;}});
+ const mt=Object.entries(missTasks).sort((a,b)=>b[1]-a[1]);const wt=weakTasks(4);
+ const msg=p>=90?"Architect energy. You're exam-ready on this set.":p>=72?"Solid run. Tighten the weak spots below.":p>=50?"Good progress. The drill will close these gaps fast.":"Rough round, and that's how learning starts. Drill the weak spots next.";
+ let h=`<section class="card score"><div class="ring">${ringSVG(p,p>=72?"var(--good)":p>=50?"var(--gold)":"var(--bad)")}<div class="v"><b class="tnum">${p}%</b><span class="tnum">${c}/${n} correct</span></div></div>
+  <div style="display:flex;flex-direction:column;gap:8px"><span class="eyebrow">${esc(S.label)} complete</span><h2>${esc(msg)}</h2><p class="muted tnum">+${gained} XP this round · ${esc(rank())} · best streak ${P.best}</p></div></section>
+ <section class="card" style="display:flex;flex-direction:column;gap:10px"><h3>This round by domain</h3>${breakdown(items,"d",k=>"D"+k+" · "+DOMAINS[k].short,k=>cv(DOMAINS[k].c))}</section>
+ <section class="card weak" style="display:flex;flex-direction:column;gap:12px"><h3>Your weak spots</h3>
+  ${mt.length?`<p class="muted">Missed this round:</p><ul>${mt.map(([t,k])=>`<li><span>Task ${t} · ${esc(TASKS[t])}</span><span class="chip tnum">${k} missed</span></li>`).join("")}</ul>`:`<p>No misses this round. Nice.</p>`}
+  ${wt.length?`<p class="muted">Weakest overall (all-time):</p><ul>${wt.map(w=>`<li><span>Task ${w.t} · ${esc(TASKS[w.t])}</span><span class="chip tnum">${pct(w.c,w.n)}% of ${w.n}</span></li>`).join("")}</ul>`:""}
+  <div class="row"><button class="btn gold" data-act="drill" ${totals().n?"":"disabled"}>Drill weak spots (15)</button><button class="btn primary" data-act="practice">New round</button><button class="btn" data-act="home">Home</button></div></section>
+ ${c<n?`<section class="card" style="display:flex;flex-direction:column;gap:10px"><h3>Review what you missed</h3>${reviewList(items,true)}</section>`:""}`;
+ app().innerHTML=h;
+ if(p>=72)setTimeout(()=>{for(let i=0;i<4;i++)burst(innerWidth*(.2+.2*i),innerHeight*.25);},150);
+}
+
+/* ---------- render: exam ---------- */
+function renderExamIntro(){
+ app().innerHTML=`<section class="card" style="display:flex;flex-direction:column;gap:14px"><span class="eyebrow">Final exam simulator</span><h1 style="font-size:clamp(1.8rem,6vw,2.6rem)">Ready when you are</h1>
+  <div class="facts"><div><b class="tnum">60</b><span>questions</span></div><div><b class="tnum">2:00:00</b><span>countdown</span></div><div><b>4 of 6</b><span>random scenarios, 15 Qs each</span></div><div><b class="tnum">720</b><span>pass mark (100–1,000)</span></div></div>
+  <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+   <li>Like the real platform, you must answer before moving on. You can go back to change answers and flag questions to revisit.</li>
+   <li>No feedback until you submit. Then you get a scaled score, a domain breakdown, and every explanation.</li>
+   <li>When the timer hits zero, the exam submits itself.</li>
+   <li>The scaled score is an estimate (100 + 900 × your % correct). The real scaling isn't published.</li>
+   <li>The timer keeps running if you leave this page, just like a real sitting.</li></ul>
+  <div class="row"><button class="btn primary" data-act="examstart">Start the 120-minute exam</button><button class="btn" data-act="home">Not yet</button></div></section>`;
+}
+function examScenIndex(){const q=curQ();return S.scen.indexOf(q.s)+1;}
+function renderExam(){
+ if(S.review)return renderExamReview();
+ const it=S.items[S.i],q=curQ(),sc=SCEN[q.s],answered=S.items.filter(x=>x.pick!==null).length;
+ let h=`<div class="hud"><div class="grow"><div class="label">Final exam · <span class="tnum">Q${S.i+1}/${S.items.length}</span></div><div class="bar" style="height:9px;margin-top:4px"><i style="width:${pct(answered,S.items.length)}%"></i></div></div>
+  <span class="timer tnum" id="timer" role="timer" aria-label="Time remaining">${fmtTime(S.end-Date.now())}</span><button class="btn small" data-act="navtoggle" aria-expanded="${!!S.nav}">Map</button></div>`;
+ if(S.nav){h+=`<section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="row" style="justify-content:space-between"><h3>Question map</h3><span class="muted" style="font-size:.85rem">Blue = answered · gold dot = flagged</span></div><div class="navgrid">`;
+  const firstOpen=S.items.findIndex(x=>x.pick===null);
+  S.items.forEach((x,i)=>{const can=x.pick!==null||i===firstOpen;h+=`<button class="navdot tnum ${x.pick!==null?"done":""} ${i===S.i?"cur":""} ${x.flag?"flag":""}" data-jump="${i}" ${can?"":"disabled"} aria-label="Question ${i+1}">${i+1}</button>`;});
+  h+=`</div></section>`;}
+ h+=`<section class="card" style="display:flex;flex-direction:column;gap:16px">
+  <div class="scen" style="--c:${cv(sc.c)}"><span class="eyebrow">Scenario ${examScenIndex()} of 4</span><b>${esc(sc.name)}</b><p class="muted">${esc(sc.text)}</p></div>
+  <p class="qtext">${md(q.q)}</p><div class="opts" role="radiogroup" aria-label="Answer options">`;
+ it.order.forEach((oi,pos)=>{h+=`<button class="opt ${it.pick===pos?"picked":""}" data-pos="${pos}" role="radio" aria-checked="${it.pick===pos}"><span class="k">${"ABCD"[pos]}</span><span class="t">${md(q.o[oi])}</span></button>`;});
+ h+=`</div><div class="qfoot"><div class="row"><button class="btn small" data-act="prev" ${S.i===0?"disabled":""}>Back</button><button class="btn small" data-act="flag" aria-pressed="${it.flag}">${it.flag?"Unflag":"Flag for review"}</button></div>
+  <button class="btn primary" data-act="enext" ${it.pick===null?"disabled":""}>${S.i+1<S.items.length?"Next":"Review &amp; submit"}</button></div></section>`;
+ app().innerHTML=h;
+}
+function renderExamReview(){
+ const flagged=S.items.map((x,i)=>({x,i})).filter(o=>o.x.flag),open=S.items.filter(x=>x.pick===null).length;
+ app().innerHTML=`<div class="hud"><div class="grow label">Final exam · review</div><span class="timer tnum" id="timer">${fmtTime(S.end-Date.now())}</span></div>
+ <section class="card" style="display:flex;flex-direction:column;gap:14px"><h2>Ready to submit?</h2>
+  <p class="tnum">${S.items.length-open} of ${S.items.length} answered${flagged.length?` · ${flagged.length} flagged`:""}.</p>
+  ${flagged.length?`<div><p class="muted">Flagged questions:</p><div class="navgrid" style="margin-top:8px">${flagged.map(o=>`<button class="navdot done flag tnum" data-jump="${o.i}">${o.i+1}</button>`).join("")}</div></div>`:""}
+  ${S.confirm?`<div class="confirm"><b>Submit now? You can't change answers after this.</b><button class="btn small" data-act="submityes">Submit</button><button class="btn small ghost" data-act="submitno">Keep reviewing</button></div>`:`<div class="row"><button class="btn primary" data-act="submit" ${open?"disabled":""}>Submit exam</button><button class="btn" data-act="backtoexam">Back to questions</button></div>`}
+ </section>`;
+}
+function finishExam(auto){
+ clearInterval(timerInt);const items=S.items,c=items.filter(it=>it.pick!==null&&it.order[it.pick]===0).length;
+ const p=c/items.length,scaled=Math.round(100+900*p);
+ items.forEach(it=>{if(it.pick!==null)record(it.id,it.order[it.pick]===0);});
+ const xp=c*5;P.xp+=xp;
+ const res={at:Date.now(),c,n:items.length,scaled,pass:scaled>=720,used:Math.min(Date.now(),S.end)-S.start,scen:S.scen,ids:items.map(x=>x.id),auto:!!auto,xp};
+ P.exams=(P.exams||[]).concat([{...res,ids:res.ids}]).slice(-20);
+ S.done=true;S.result=res;P.session=null;save();logAttempt("exam","Final exam",items,{scaled,passed:scaled>=720});go("examresult");
+}
+function renderExamResult(){
+ const r=S.result,items=S.items;
+ let h=`<section class="card score"><div class="ring">${ringSVG(pct(r.c,r.n),r.pass?"var(--good)":"var(--bad)")}<div class="v"><b class="tnum">${r.scaled}</b><span>scaled estimate</span></div></div>
+  <div style="display:flex;flex-direction:column;gap:10px"><span class="pass ${r.pass?"y":"n"}">${r.pass?"PASS":"NOT YET"}</span>
+  <p class="tnum"><b>${r.c}/${r.n}</b> correct (${pct(r.c,r.n)}%) · time used ${fmtTime(r.used)}${r.auto?" · submitted when time ran out":""} · +${r.xp} XP</p>
+  <p class="muted">${r.pass?"You cleared 720 on this form. Try another attempt to see different scenarios.":"You need 720. Drill the weak spots below, then try again with a fresh set of scenarios."}</p></div></section>
+ <section class="grid2"><div class="card" style="display:flex;flex-direction:column;gap:10px"><h3>By domain</h3>${breakdown(items,"d",k=>"D"+k+" · "+DOMAINS[k].short,k=>cv(DOMAINS[k].c))}</div>
+ <div class="card" style="display:flex;flex-direction:column;gap:10px"><h3>By scenario</h3>${breakdown(items,"s",k=>SCEN[k].name,k=>cv(SCEN[k].c))}</div></section>
+ <section class="card row"><button class="btn gold" data-act="drill">Drill weak spots (15)</button><button class="btn primary" data-act="examintro">Take another exam</button><button class="btn" data-act="home">Home</button></section>
+ <section class="card" style="display:flex;flex-direction:column;gap:10px"><div class="row" style="justify-content:space-between"><h3>Answer review</h3>
+  <div class="row" role="group" aria-label="Filter"><button class="chip ${S.allRev?"":"sel"}" data-act="revmissed">Missed only</button><button class="chip ${S.allRev?"sel":""}" data-act="revall">All 60</button></div></div>
+  ${reviewList(items,!S.allRev)||"<p>Perfect score. Nothing to review.</p>"}</section>`;
+ app().innerHTML=h;
+ if(r.pass)setTimeout(()=>{for(let i=0;i<5;i++)burst(innerWidth*(.1+.2*i),innerHeight*.3);},150);
+}
+function tick(){const el=$("#timer");if(!S||S.mode!=="exam"||S.done){clearInterval(timerInt);return;}const left=S.end-Date.now();
+ if(left<=0){finishExam(true);return;}if(el){el.textContent=fmtTime(left);el.classList.toggle("warn",left<10*60000);}}
+
+
+/* ---------- AI tutor (asks Claude on the viewer's own account) ---------- */
+const TUT={}; let SAMPLE=null, sampleState="pending";
+const samplePromise=(window.claude&&typeof window.claude.use==="function")?window.claude.use("sample").then(fn=>{SAMPLE=fn;sampleState=fn?"on":"off";refreshTutors();return fn;}).catch(()=>{sampleState="off";refreshTutors();return null;}):Promise.resolve(null).then(()=>{sampleState="off";return null;});
+const SUGS=["Why is my answer wrong?","Explain it with a real example","How do I spot this on the exam?"];
+function tutorContext(q,it){
+ const L="ABCD",shown=it.order.map((oi,pos)=>L[pos]+") "+q.o[oi]).join("\n");
+ const right=L[it.order.indexOf(0)],mine=it.pick===null?"(no answer)":L[it.pick];
+ return "You are a friendly, precise tutor helping someone study for the Claude Certified Architect – Foundations (CCAF) exam, which covers the Claude Agent SDK, Claude Code, the Claude API and MCP. "
+ +"Answer the learner's follow-up about the practice question below. Be concrete and encouraging, keep it under about 180 words unless they ask for more, and use plain text (short '- ' bullets and `backticks` for code are fine; no headings). "
+ +"Explain why the correct option is right and, when relevant, the specific misconception behind the option they chose. If a product detail is uncertain, say so instead of guessing.\n\n"
+ +"Domain "+q.d+": "+DOMAINS[q.d].name+" | Task "+q.t+": "+TASKS[q.t]+"\nScenario: "+SCEN[q.s].name+" — "+SCEN[q.s].text+"\n\nQuestion: "+q.q+"\n"+shown
+ +"\n\nCorrect answer: "+right+"\nLearner chose: "+mine+"\nExplanation shown to the learner: "+q.e;
+}
+function richText(t){
+ const lines=esc(t).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>").split(/\n/);
+ let h="",inList=false;
+ lines.forEach(l=>{const m=l.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)/);
+  if(m){if(!inList){h+="<ul>";inList=true;}h+="<li>"+m[1]+"</li>";}
+  else{if(inList){h+="</ul>";inList=false;}if(l.trim())h+="<p>"+l+"</p>";}});
+ if(inList)h+="</ul>";return h;}
+function claudeLink(q,it,ask){return "https://claude.ai/new?q="+encodeURIComponent(tutorContext(q,it)+"\n\nMy question: "+(ask||(it.pick!==null&&it.order[it.pick]===0?"I got this one right. Help me understand why the other options are wrong, and how to remember this on the exam.":"Why is my answer wrong, and how do I remember the right one?")));}
+function tutorInner(q,it){
+ const T=TUT[q.id]||{turns:[]};const wrong=it.pick!==null&&it.order[it.pick]!==0;
+ let h=`<div class="th"><span class="av" aria-hidden="true">?</span><h3>${wrong?"Still confused? Ask the tutor":"Ask the tutor a follow-up"}</h3></div>`;
+ if(sampleState==="off"){
+  return h+`<p class="muted" style="font-size:.92rem">Open this question in Claude with the full context already filled in. It uses your own free Claude account.</p><p><a class="tlink" href="${esc(claudeLink(q,it))}" target="_blank" rel="noopener">Ask Claude about this question ↗</a></p><p class="muted" style="font-size:.8rem">Claude may ask you to check a pre-filled prompt before sending. That is expected: it only contains this question and its explanation.</p>`;}
+ if(T.turns.length){h+=`<div class="msgs">`+T.turns.map((m,i)=>m.role==="user"?`<div class="msg u">${esc(m.content)}</div>`:`<div class="msg a ${m.err?"err":""}" id="${i===T.turns.length-1?"tut-live-"+q.id:""}">${m.content?richText(m.content):'<span class="muted">Thinking…</span>'}</div>`).join("")+`</div>`;}
+ if(T.note)h+=`<p class="muted" style="font-size:.88rem">${esc(T.note)}</p>`;
+ if(!T.turns.length)h+=`<div class="sugs">${SUGS.map(x=>`<button class="chip" data-tsug="${esc(q.id)}">${esc(x)}</button>`).join("")}</div>`;
+ h+=`<form class="tform" data-tform="${esc(q.id)}"><label class="sr" for="tin-${esc(q.id)}" style="position:absolute;left:-9999px">Your question</label><input id="tin-${esc(q.id)}" type="text" autocomplete="off" maxlength="600" placeholder="${T.turns.length?"Ask another question…":"Type your own question…"}" ${T.busy?"disabled":""}>`
+  +(T.busy?`<button class="btn small" type="button" data-tstop="${esc(q.id)}">Stop</button>`:`<button class="btn small primary" type="submit">Ask</button>`)+`</form>`;
+ return h;}
+function tutorBox(q,it){return `<div class="tutor" data-tutor="${esc(q.id)}">${tutorInner(q,it)}</div>`;}
+function itemFor(qid){if(!S)return null;return S.items.find(x=>x.id===qid)||null;}
+function refreshTutor(qid){const box=document.querySelector(`[data-tutor="${CSS.escape(qid)}"]`);const it=itemFor(qid);if(!box||!it)return;
+ const inp=box.querySelector("input"),val=inp?inp.value:"",had=inp&&document.activeElement===inp;box.innerHTML=tutorInner(BY.id[qid],it);
+ const ni=box.querySelector("input");if(ni){ni.value=val;if(had&&!ni.disabled)ni.focus({preventScroll:true});}}
+function refreshTutors(){document.querySelectorAll("[data-tutor]").forEach(b=>refreshTutor(b.dataset.tutor));}
+async function askTutor(qid,text){
+ text=(text||"").trim();if(!text)return;const q=BY.id[qid],it=itemFor(qid);if(!q||!it)return;
+ const T=TUT[qid]||(TUT[qid]={turns:[]});if(T.busy)return;
+ const fn=SAMPLE||await samplePromise;if(!fn){refreshTutor(qid);return;}
+ T.note="";T.turns.push({role:"user",content:text});T.turns.push({role:"assistant",content:""});T.busy=true;T.ctl=new AbortController();refreshTutor(qid);
+ const hist=T.turns.slice(0,-1).filter(m=>m.content&&!m.err).slice(-12);
+ const input=[{role:"user",content:tutorContext(q,it)},...hist];
+ const live=T.turns[T.turns.length-1];
+ try{
+  const r=await fn(input,{cache:false,signal:T.ctl.signal,onText:({text})=>{live.content=text;const el=document.getElementById("tut-live-"+qid);if(el)el.innerHTML=richText(text);}});
+  live.content=r.text;if(r.truncated)T.note="That answer was cut short. Ask for a shorter version or one part at a time.";
+ }catch(e){
+  live.content=e&&e.text||"";
+  const c=e&&e.code;
+  if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c)){sampleState="off";T.turns.splice(-2,2);}
+  else if(c==="cancelled"){if(!live.content)T.turns.splice(-1,1);T.note="Stopped.";}
+  else{if(!live.content){live.content=c==="rate_limited"?"You've hit a usage limit for now. Try again in a little while.":c==="session_expired"?"Your Claude sign-in expired. Sign in again, then ask.":c==="refused"?"I can't answer that one. Try asking it a different way.":"Something went wrong reaching Claude. Try asking again.";live.err=true;}else T.note="The answer was interrupted.";}
+ }finally{T.busy=false;T.ctl=null;refreshTutor(qid);}
+}
+document.addEventListener("submit",e=>{const f=e.target.closest("[data-tform]");if(!f)return;e.preventDefault();const inp=f.querySelector("input");const v=inp.value;inp.value="";askTutor(f.dataset.tform,v);});
+/* ---------- cloud: accounts, saved results, leaderboard (Supabase) ---------- */
+const CFG=window.CCAF_CONFIG||{};
+const SB=(CFG.supabaseUrl&&CFG.supabaseAnonKey&&window.supabase&&!/YOUR-/.test(CFG.supabaseUrl))?window.supabase.createClient(CFG.supabaseUrl,CFG.supabaseAnonKey):null;
+let ME=null, cloudTimer=null, authMode="signin", authMsg="", authBusy=false, BOARD=null, boardErr="";
+function userKey(){return ME?KEY+":"+ME.id:KEY;}
+function summaryNums(){let seen=0,m=0;ALL.forEach(q=>{const s=stat(q.id);if(s.n)seen++;if(s.last===1)m++;});return {seen,m};}
+function cloudSave(){
+ if(!SB||!ME)return;clearTimeout(cloudTimer);
+ cloudTimer=setTimeout(async()=>{
+  try{const sn=summaryNums();
+   await SB.from("progress").upsert({user_id:ME.id,data:P,updated_at:new Date().toISOString()});
+   await SB.from("profiles").update({xp:P.xp,seen:sn.seen,mastered:sn.m,best_streak:P.best,updated_at:new Date().toISOString()}).eq("id",ME.id);
+  }catch(e){console.warn("cloud save failed",e);}
+ },1200);
+}
+function domainSplit(items){const m={};items.forEach(it=>{const q=BY.id[it.id];if(!q)return;const x=m[q.d]||(m[q.d]=[0,0]);x[1]++;if(it.pick!==null&&it.order[it.pick]===0)x[0]++;});return m;}
+async function logAttempt(mode,label,items,extra){
+ if(!SB||!ME)return;
+ const correct=items.filter(it=>it.pick!==null&&it.order[it.pick]===0).length;
+ const row={mode,label:String(label).slice(0,60),correct,total:items.length,domains:domainSplit(items),...(extra||{})};
+ try{const {error}=await SB.from("attempts").insert(row);if(error)throw error;BOARD=null;}catch(e){console.warn("could not save result",e);toast("Couldn't save this result online. Your progress is still saved here.");}
+}
+async function adoptUser(user){
+ ME={id:user.id,email:user.email,name:(user.user_metadata&&user.user_metadata.display_name)||""};
+ try{
+  const [{data:prof},{data:prog}]=await Promise.all([
+   SB.from("profiles").select("display_name").eq("id",ME.id).maybeSingle(),
+   SB.from("progress").select("data,updated_at").eq("user_id",ME.id).maybeSingle()]);
+  if(prof&&prof.display_name)ME.name=prof.display_name;
+  else{ME.name=(ME.name||"Player "+ME.id.slice(0,4)).slice(0,24);await SB.from("profiles").upsert({id:ME.id,display_name:ME.name});}
+  let cached=null;try{cached=JSON.parse(localStorage.getItem(userKey())||"null");}catch(e){}
+  const remote=prog&&prog.data&&prog.data.qs?prog.data:null;
+  if(remote&&(!cached||(remote.t||0)>=(cached.t||0)))P=remote;
+  else if(cached&&cached.qs)P=cached;
+  else{const guest=load();if(guest.xp>0||Object.keys(guest.qs).length){P=guest;toast("Your earlier progress on this device is now saved to your account.");}else P={qs:{},xp:0,best:0,exams:[],session:null};}
+  save();
+ }catch(e){console.warn("sign-in sync failed",e);}
+ useSet(P.set||"all");
+}
+async function initCloud(){
+ if(!SB)return;
+ const {data}=await SB.auth.getSession();
+ if(data&&data.session)await adoptUser(data.session.user);
+ SB.auth.onAuthStateChange((ev,session)=>{
+  if(ev==="SIGNED_OUT"){ME=null;P=load();useSet(P.set||"all");BOARD=null;go("home");}
+ });
+}
+async function doAuth(form){
+ const email=form.email.value.trim(),pw=form.password.value,name=form.dname?form.dname.value.trim():"";
+ if(authMode==="signup"&&(name.length<1||name.length>24)){authMsg="Pick a nickname between 1 and 24 characters.";render();return;}
+ authBusy=true;authMsg="";render();
+ try{
+  let res;
+  if(authMode==="signup")res=await SB.auth.signUp({email,password:pw,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}});
+  else res=await SB.auth.signInWithPassword({email,password:pw});
+  if(res.error)throw res.error;
+  if(!res.data.session){authMsg="Almost there: check your inbox for a confirmation link, then sign in.";authMode="signin";}
+  else{await adoptUser(res.data.user);authBusy=false;toast("Signed in as "+ME.name);go("home");return;}
+ }catch(e){authMsg=(e&&e.message)||"Something went wrong. Try again.";}
+ authBusy=false;render();
+}
+function renderAuth(){
+ const up=authMode==="signup";
+ app().innerHTML=`<section class="card" style="display:flex;flex-direction:column;gap:16px;max-width:520px;width:100%;margin:0 auto">
+  <span class="eyebrow">${up?"Create your account":"Welcome back"}</span>
+  <h2>${up?"Join the study group":"Sign in"}</h2>
+  <p class="muted">${up?"Your results save to your account, so you can switch devices, and your nickname shows on the group leaderboard. Your email stays private.":"Pick up your progress on any device."}</p>
+  <div class="row" role="tablist"><button class="chip ${!up?"sel":""}" data-act="authin" role="tab" aria-selected="${!up}">Sign in</button><button class="chip ${up?"sel":""}" data-act="authup" role="tab" aria-selected="${up}">Create account</button></div>
+  <form id="authform" class="authf">
+   ${up?`<label>Nickname (shown to others)<input name="dname" maxlength="24" required autocomplete="nickname" placeholder="e.g. LoopMaster"></label>`:""}
+   <label>Email<input name="email" type="email" required autocomplete="email"></label>
+   <label>Password<input name="password" type="password" required minlength="8" autocomplete="${up?"new-password":"current-password"}" placeholder="${up?"At least 8 characters":""}"></label>
+   ${authMsg?`<p class="authmsg" role="alert">${esc(authMsg)}</p>`:""}
+   <div class="row"><button class="btn primary" type="submit" ${authBusy?"disabled":""}>${authBusy?"One moment…":up?"Create account":"Sign in"}</button><button class="btn small ghost" type="button" data-act="home">Keep playing as a guest</button></div>
+  </form></section>`;
+}
+function ago(ts){const s=(Date.now()-new Date(ts))/1000;if(s<60)return "just now";if(s<3600)return Math.floor(s/60)+"m ago";if(s<86400)return Math.floor(s/3600)+"h ago";const d=Math.floor(s/86400);return d<30?d+"d ago":new Date(ts).toLocaleDateString();}
+async function loadBoard(){
+ boardErr="";
+ try{
+  const [p,a]=await Promise.all([
+   SB.from("profiles").select("id,display_name,xp,seen,mastered,best_streak,updated_at").order("xp",{ascending:false}).limit(200),
+   SB.from("attempts").select("user_id,mode,label,correct,total,scaled,passed,domains,created_at").order("created_at",{ascending:false}).limit(1000)]);
+  if(p.error)throw p.error;if(a.error)throw a.error;
+  BOARD={profiles:p.data,attempts:a.data,at:Date.now()};
+ }catch(e){boardErr=(e&&e.message)||"Couldn't load the leaderboard.";}
+ if(view==="board")render();
+}
+function renderBoard(){
+ if(!BOARD&&!boardErr){app().innerHTML=`<section class="card"><h2>Loading the leaderboard…</h2></section>`;loadBoard();return;}
+ if(boardErr){app().innerHTML=`<section class="card" style="display:flex;flex-direction:column;gap:10px"><h2>The leaderboard didn't load</h2><p class="muted">${esc(boardErr)}</p><div><button class="btn" data-act="boardreload">Try again</button></div></section>`;return;}
+ const names={};BOARD.profiles.forEach(p=>names[p.id]=p.display_name);
+ const per={};BOARD.attempts.forEach(a=>{const x=per[a.user_id]||(per[a.user_id]={c:0,n:0,rounds:0,exams:0,best:null,last:a.created_at});
+  x.c+=a.correct;x.n+=a.total;if(a.mode==="exam"){x.exams++;if(a.scaled!=null)x.best=Math.max(x.best||0,a.scaled);}else x.rounds++;});
+ const group={};let gc=0,gn=0;BOARD.attempts.forEach(a=>{Object.entries(a.domains||{}).forEach(([d,v])=>{const g=group[d]||(group[d]=[0,0]);g[0]+=v[0];g[1]+=v[1];gc+=v[0];gn+=v[1];});});
+ const weakest=Object.entries(group).filter(([d,v])=>v[1]>=5).sort((a,b)=>a[1][0]/a[1][1]-b[1][0]/b[1][1])[0];
+ const active7=new Set(BOARD.attempts.filter(a=>Date.now()-new Date(a.created_at)<7*864e5).map(a=>a.user_id)).size;
+ const rows=BOARD.profiles.filter(p=>p.xp>0||per[p.id]);
+ let h=`<section class="card hero"><div class="title"><span class="eyebrow">Study group</span><h1 style="font-size:clamp(1.9rem,6vw,2.8rem)">Leader<span>board</span></h1>
+   <p>${ME?`You're playing as <b>${esc(ME.name)}</b>.`:`<button class="btn small primary" data-act="auth">Sign in</button> to get on the board.`} Ranked by XP. Every finished round and exam counts.</p></div></section>
+  <section class="stats">
+   <div class="stat"><b class="tnum">${rows.length}</b><span>Players</span></div>
+   <div class="stat"><b class="tnum">${active7}</b><span>Active this week</span></div>
+   <div class="stat"><b class="tnum">${gn.toLocaleString()}</b><span>Questions answered</span></div>
+   <div class="stat"><b class="tnum">${gn?pct(gc,gn)+"%":"–"}</b><span>Group accuracy</span></div>
+  </section>
+  <section class="card" style="display:flex;flex-direction:column;gap:12px"><h3>Rankings</h3>`;
+ if(!rows.length)h+=`<p class="muted">Nobody's on the board yet. Finish a round to be first!</p>`;
+ else{h+=`<div class="tblwrap"><table class="lb"><thead><tr><th>#</th><th>Player</th><th class="r">XP</th><th class="r hm">Seen</th><th class="r">Accuracy</th><th class="r">Best exam</th><th class="r hm">Active</th></tr></thead><tbody>`;
+  rows.forEach((p,i)=>{const x=per[p.id]||{c:0,n:0,best:null,last:p.updated_at};const me=ME&&p.id===ME.id;
+   h+=`<tr class="${me?"me":""}"><td class="tnum">${i<3?["🥇","🥈","🥉"][i]:i+1}</td><td><b>${esc(p.display_name)}</b>${me?' <span class="chip sm" style="padding:0 6px">you</span>':""}<div class="muted sm">${esc(RANKS[Math.min(Math.floor(p.xp/LVL),RANKS.length-1)])}</div></td>
+   <td class="r tnum">${p.xp.toLocaleString()}</td><td class="r tnum hm">${p.seen}/${ALL.length}</td><td class="r tnum">${x.n?pct(x.c,x.n)+"%":"–"}</td>
+   <td class="r tnum">${x.best!=null?`<span class="${x.best>=720?"okc":""}">${x.best}</span>`:"–"}</td><td class="r muted sm hm">${ago(x.last||p.updated_at)}</td></tr>`;});
+  h+=`</tbody></table></div>`;}
+ h+=`</section><section class="grid2"><div class="card" style="display:flex;flex-direction:column;gap:10px"><h3>Group progress by domain</h3>
+  ${Object.keys(DOMAINS).map(d=>{const g=group[d]||[0,0],p=pct(g[0],g[1]);return `<div class="dline" style="--c:${cv(DOMAINS[d].c)}"><span>D${d} · ${esc(DOMAINS[d].short)}</span><div class="bar"><i style="width:${p}%"></i></div><span class="tnum">${g[1]?p+"%":"–"}</span></div>`;}).join("")}
+  ${weakest?`<p class="muted" style="font-size:.9rem">The group's weakest area is <b>${esc(DOMAINS[weakest[0]].name)}</b>. <button class="btn small" data-act="domain" data-d="${weakest[0]}">Play 10 from it</button></p>`:""}</div>
+  <div class="card" style="display:flex;flex-direction:column;gap:10px"><h3>Recent activity</h3>`;
+ const feed=BOARD.attempts.slice(0,12);
+ if(!feed.length)h+=`<p class="muted">No finished rounds yet.</p>`;
+ else h+=`<ul class="feed">`+feed.map(a=>`<li><span><b>${esc(names[a.user_id]||"Someone")}</b> ${a.mode==="exam"?`took the final exam: <b class="tnum ${a.passed?"okc":""}">${a.scaled}</b>${a.passed?" (pass)":""}`:`scored <b class="tnum">${pct(a.correct,a.total)}%</b> on ${esc(a.label)} (${a.correct}/${a.total})`}</span><span class="muted sm">${ago(a.created_at)}</span></li>`).join("")+`</ul>`;
+ h+=`</div></section>`;
+ if(ME)h+=`<section class="card" style="display:flex;flex-direction:column;gap:10px"><h3>Your nickname</h3><form id="nameform" class="tform"><input name="dname" maxlength="24" required value="${esc(ME.name)}" aria-label="Nickname"><button class="btn small" type="submit">Save</button></form></section>`;
+ h+=`<div class="row"><button class="btn" data-act="home">Back to practice</button><button class="btn small ghost" data-act="boardreload">Refresh</button></div>`;
+ app().innerHTML=h;
+}
+async function saveName(form){const v=form.dname.value.trim().slice(0,24);if(!v)return;
+ const {error}=await SB.from("profiles").update({display_name:v}).eq("id",ME.id);
+ if(error){toast("Couldn't save that nickname.");return;}ME.name=v;BOARD=null;toast("Nickname saved");render();}
+function renderNav(){
+ const n=$("#nav");if(!n)return;
+ if(!SB){n.innerHTML="";n.hidden=true;return;}
+ n.hidden=false;
+ n.innerHTML=`<button class="brand" data-act="home" aria-label="CCAF Quest home">CCAF <span>Quest</span></button><div class="grow"></div>
+  <button class="btn small ${view==="board"?"primary":""}" data-act="board">Leaderboard</button>
+  ${ME?`<button class="who btn small ghost" data-act="board" title="Change your nickname on the leaderboard page">${esc(ME.name)}</button><button class="btn small ghost" data-act="signout">Sign out</button>`:`<button class="btn small gold" data-act="auth">Sign in</button>`}`;
+}
+document.addEventListener("submit",e=>{
+ if(e.target.id==="authform"){e.preventDefault();doAuth(e.target);}
+ else if(e.target.id==="nameform"){e.preventDefault();saveName(e.target);}
+});
+
+/* ---------- main render & events ---------- */
+function render(){
+ clearInterval(timerInt);
+ if(view==="home")renderHome();
+ else if(view==="quiz")renderQuiz();
+ else if(view==="summary")renderSummary();
+ else if(view==="examintro")renderExamIntro();
+ else if(view==="exam"){renderExam();timerInt=setInterval(tick,1000);tick();}
+ else if(view==="examresult")renderExamResult();
+ else if(view==="auth")renderAuth();
+ else if(view==="board")renderBoard();
+ renderNav();
+}
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;
+ if(b.dataset.tsug){askTutor(b.dataset.tsug,b.textContent);return;}
+ if(b.dataset.tstop){const T=TUT[b.dataset.tstop];if(T&&T.ctl)T.ctl.abort();return;}
+ if(b.dataset.size){roundSize=+b.dataset.size;render();return;}
+ if(b.dataset.set){useSet(b.dataset.set);save();render();return;}
+ if(b.dataset.pos!==undefined){const pos=+b.dataset.pos;if(view==="quiz")answer(pos);else if(view==="exam"){S.items[S.i].pick=pos;P.session=S;save();render();}return;}
+ if(b.dataset.jump!==undefined){S.i=+b.dataset.jump;S.review=false;S.nav=false;save();render();return;}
+ const a=b.dataset.act;if(!a)return;
+ ({home:()=>{go("home");},practice:()=>startPractice(roundSize),domain:()=>startPractice(10,+b.dataset.d),drill:startDrill,examintro:()=>go("examintro"),examstart:startExam,
+  resume:()=>{S=P.session;if(S.mode==="exam"){if(Date.now()>=S.end){finishExam(true);return;}go("exam");}else go("quiz");},
+  discard:()=>{P.session=null;save();render();},
+  next, reset:()=>{homeConfirm=true;renderHome();}, resetno:()=>{homeConfirm=false;renderHome();},
+  resetyes:()=>{P={qs:{},xp:0,best:0,exams:[],session:null};save();BOARD=null;homeConfirm=false;renderHome();toast("Progress erased. Fresh start!");},
+  prev:()=>{if(S.i>0){S.i--;save();render();}}, flag:()=>{S.items[S.i].flag=!S.items[S.i].flag;P.session=S;save();render();},
+  navtoggle:()=>{S.nav=!S.nav;render();},
+  enext:()=>{if(S.items[S.i].pick===null)return;if(S.i+1<S.items.length){S.i++;P.session=S;save();render();window.scrollTo({top:0});}else{S.review=true;S.confirm=false;render();}},
+  backtoexam:()=>{S.review=false;render();}, submit:()=>{S.confirm=true;render();}, submitno:()=>{S.confirm=false;render();}, submityes:()=>finishExam(false),
+  revmissed:()=>{S.allRev=false;render();}, revall:()=>{S.allRev=true;render();},
+  auth:()=>{authMsg="";go("auth");}, authin:()=>{authMode="signin";authMsg="";render();}, authup:()=>{authMode="signup";authMsg="";render();},
+  board:()=>go("board"), boardreload:()=>{BOARD=null;boardErr="";render();}, signout:()=>{clearTimeout(cloudTimer);SB.auth.signOut();}
+ }[a]||(()=>{}))();
+});
+document.addEventListener("keydown",e=>{
+ if(e.metaKey||e.ctrlKey||e.altKey)return;if(/INPUT|TEXTAREA|SELECT/.test((e.target.tagName||"")))return;
+ const k=e.key.toLowerCase();const idx="abcd".indexOf(k)>=0?"abcd".indexOf(k):"1234".indexOf(k);
+ if(view==="quiz"&&S){const it=S.items[S.i];if(it.pick===null&&idx>=0&&k.length===1){e.preventDefault();answer(idx);}else if(it.pick!==null&&k==="enter"&&e.target.tagName!=="BUTTON"){e.preventDefault();next();}}
+ else if(view==="exam"&&S&&!S.review&&idx>=0&&k.length===1){e.preventDefault();S.items[S.i].pick=idx;P.session=S;save();render();}
+});
+
+/* ---------- confetti ---------- */
+const cvs=$("#fx"),ctx=cvs.getContext("2d");let parts=[],raf=null;
+const reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+function size(){cvs.width=innerWidth*devicePixelRatio;cvs.height=innerHeight*devicePixelRatio;}size();addEventListener("resize",size);
+function burst(x,y){if(reduce)return;const cs=getComputedStyle(document.documentElement);const cols=["--d1","--d2","--d3","--d4","--d5","--gold","--accent"].map(c=>cs.getPropertyValue(c).trim());
+ for(let i=0;i<34;i++){const a=Math.random()*Math.PI*2,v=3+Math.random()*6;parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-4,r:3+Math.random()*4,c:cols[i%cols.length],life:60+Math.random()*30,rot:Math.random()*6,sq:Math.random()<.5});}
+ if(!raf)raf=requestAnimationFrame(step);}
+function step(){ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ctx.clearRect(0,0,innerWidth,innerHeight);
+ parts=parts.filter(p=>p.life-->0);parts.forEach(p=>{p.vy+=.25;p.vx*=.98;p.x+=p.vx;p.y+=p.vy;p.rot+=.2;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=Math.min(1,p.life/25);ctx.fillStyle=p.c;if(p.sq)ctx.fillRect(-p.r,-p.r/2,p.r*2,p.r);else{ctx.beginPath();ctx.arc(0,0,p.r,0,7);ctx.fill();}ctx.restore();});
+ raf=parts.length?requestAnimationFrame(step):(ctx.clearRect(0,0,innerWidth,innerHeight),null);}
+
+/* ---------- boot ---------- */
+Promise.all([fetch("questions.json").then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}),fetch("questions-set2.json").then(r=>r.ok?r.json():[]).catch(()=>[])]).then(([d1,d2])=>{
+ d1.forEach(q=>q.set=1);d2.forEach(q=>q.set=2);ALL=d1.concat(d2);const data=ALL;
+ useSet(P.set||"all");
+ return initCloud().catch(e=>console.warn(e)).then(()=>{
+ if(P.session&&P.session.items&&P.session.items.some(x=>!BY.id[x.id]))P.session=null;
+ render();});
+}).catch(err=>{app().innerHTML=`<section class="card"><h2>The question bank didn't load</h2><p class="muted">Reload the page to try again. (${esc(err.message)})</p></section>`;});
+})();
+</script>
+</body>
+</html>
